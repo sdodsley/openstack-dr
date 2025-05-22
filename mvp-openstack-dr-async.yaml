@@ -13,6 +13,7 @@
     fa_api_token: <replication target FlashArray API token>
     os_volume_name: <name of boot volume on source os cloud>
     target_os_volume_name: <name of boot volume on target os cloud>
+    bootable: True | False
   tasks:
     - name: Get Cinder volume details
       openstack.cloud.volume_info:
@@ -96,7 +97,7 @@
         cloud: "{{ target_openstack_cloud }}"
         state: present
         source_name: "{{ restored_volume_name_safe }}"
-        bootable: True
+        bootable: "{{ bootable }}"
         volume_type: "{{ target_volume_type }}"
         host: "{{ target_host }}"
         name: "{{ target_os_volume_name }}"
