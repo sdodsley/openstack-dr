@@ -70,4 +70,6 @@ openstack volume type set --property replication_type='<in> async' Tenant3
 openstack volume type set --project <tenant 3 name>
 ```
 
-On the target OpenStack cloud, you may want to have similar volumes types created, with out without reverse replication. The second physical FlashArray is the one that should be configured in the target OpenStack cloud's `cinder.conf`
+On the target OpenStack cloud, you may want to have similar volumes types created, with our without reverse replication. The second physical FlashArray is the one that should be configured in the target OpenStack cloud's `cinder.conf`.
+
+The second cloud's volume types should be used as necessary in the `volume_manage` task.
