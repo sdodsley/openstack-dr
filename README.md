@@ -27,25 +27,25 @@ enabled_backends = fa_tenant_1, fa_tenant_2, fa_tenant_3
 [fa_tenant_1]
 volume_backend_name = fa_tenant_1
 volume_driver = cinder.volume.drivers.pure.PureISCSIDriver
-san_ip = <FA MGMT IP address>
+san_ip = <FA 1 MGMT IP address>
 replication_device = backend_id:fa-2,san_ip:<IP address of FA 2>,api_token:<API token of FA 2>,type:async
-pure_api_token = <FA API token>
+pure_api_token = <FA 1 API token>
 pure_replication_pg_name = tenant_1
 
 [fa_tenant_2]
 volume_backend_name = fa_tenant_2
 volume_driver = cinder.volume.drivers.pure.PureISCSIDriver
-san_ip = <FA MGMT IP address>
+san_ip = <FA 1 MGMT IP address>
 replication_device = backend_id:fa-2,san_ip:<IP address of FA 2>,api_token:<API token of FA 2>,type:async
-pure_api_token = <FA API token>
+pure_api_token = <FA 1 API token>
 pure_replication_pg_name = tenant_3
 
-[fa_tenant_2]
-volume_backend_name = fa_tenant_2
+[fa_tenant_3]
+volume_backend_name = fa_tenant_3
 volume_driver = cinder.volume.drivers.pure.PureISCSIDriver
-san_ip = <FA MGMT IP address>
+san_ip = <FA 1 MGMT IP address>
 replication_device = backend_id:fa-2,san_ip:<IP address of FA 2>,api_token:<API token of FA 2>,type:async
-pure_api_token = <FA API token>
+pure_api_token = <FA 1 API token>
 pure_replication_pg_name = tenant_3
 ```
 
