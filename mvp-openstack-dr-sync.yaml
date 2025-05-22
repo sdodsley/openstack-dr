@@ -1,0 +1,70 @@
+i# -----------------------------------------------------------------------------
+# Copyright © 2025 Pure Storage, Inc. All rights reserved.
+# This playbook is intended for use in automating sync volume restore operations
+# on Pure Storage FlashArray volumes in OpenStack environments.
+# -----------------------------------------------------------------------------
+
+- name: OpenStack DR recovery - single boot volume
+  hosts: localhost
+  gather_facts: no
+  vars:
+    source_openstack_cloud: <name of source os cloud>
+    target_openstack_cloud: <name of target os cloud>
+    fa_url: <replication target FlashArray IP address>
+    fa_api_token: <replication target FlashArray API token>
+    os_volume_name: <name of boot volume on source os cloud>
+    target_os_volume_name: <name of the new boot volume on target os cloud>
+  tasks:
+    - name: Get Cinder volume details
+      openstack.cloud.volume_info:
+        cloud: "{{ source_openstack_cloud }}"
+        name: "{{ os_volume_name }}"
+      register: os_volume_info
+
+    - name: Define name for cloned volume
+      set_fact:
+        cloned_volume_name: "cloned-from-{{ os_volume_name }}"
+
+    - name: Sanitize cloned volume name (no dots)
+      set_fact:
+        cloned_volume_name_safe: "{{ cloned_volume_name | replace('.', '-') }}"
+
+    - name: Create clone from volume in pod
+      purestorage.flasharray.purefa_volume:
+        name: "{{ os_volume_info.volumes[0].metadata.array_volume_name }}"
+        target: "{{ cloned_volume_name_safe }}"
+        overwrite: false
+        fa_url: "{{ fa_url }}"
+        api_token: "{{ fa_api_token }}"
+
+    - name: Display new volume info
+      debug:
+        msg: "Cloned volume '{{ cloned_volume_name_safe }}' created from volume '{{ os_volume_name }}'"
+
+    - name: Manage volume into cinder
+      openstack.cloud.volume_manage:
+        cloud: "{{ target_openstack_cloud }}"
+        state: present
+        source_name: "{{ cloned_volume_name_safe }}"
+        bootable: True
+        volume_type: "{{ target_volume_type }}"
+        host: "{{ target_host }}"
+        name: "{{ target_os_volume_name }}"
+      register: cinder_vol
+
+    - name: Boot instance from managed volume
+      openstack.cloud.server:
+        cloud: "{{ target_openstack_cloud }}"
+        state: present
+        name: "{{ os_instance_name }}"
+        flavor: "{{ os_flavor }}"
+        key_name: "{{ os_keypair }}"
+        nics:
+          - net-name: "{{ os_network }}"
+        security_groups: "{{ os_security_groups }}"
+        boot_volume: "{{ cinder_vol.volume.name }}"
+        wait: true
+        timeout: 600
+        # availability_zone: # Optional
+        # user_data: # Optional
+        # scheduler_hints: # Optional
