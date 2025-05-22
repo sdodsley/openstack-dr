@@ -1,0 +1,114 @@
+- name: OpenStack DR recovery - single boot volume
+  hosts: localhost
+  gather_facts: no
+  vars:
+    source_openstack_cloud: devstack-admin
+    target_openstack_cloud: devstack-admin
+    fa_url: 10.225.112.40
+    fa_api_token: f63db782-4918-661a-ac0e-df993613632b
+    os_volume_name:
+  tasks:
+    - name: Get Cinder volume details
+      openstack.cloud.volume_info:
+        cloud: "{{ source_openstack_cloud }}"
+        name: "{{ os_volume_name }}"
+      register: os_volume_info
+
+    - name: Extract array and array_volume_name from Cinder volume metadata
+      set_fact:
+        volume_name: "{{ os_volume_info.volumes[0].metadata.array_volume_name }}"
+        source_array: "{{ os_volume_info.volumes[0].metadata.array_name }}"
+
+    - name: Set the pg volume name
+      set_fact:
+        target_volume_source: "{{ source_array }}:{{ volume_name }}"
+
+    - name: Get snapshot info from FlashArray
+      purestorage.flasharray.purefa_info:
+        gather_subset: ['snapshots']
+        fa_url: "{{ fa_url }}"
+        api_token: "{{ fa_api_token }}"
+      register: result
+
+    - name: Convert snapshots dict to list
+      set_fact:
+        all_snapshots: >-
+          {{ result.purefa_info.snapshots | dict2items(key_name='name', value_name='data') }}
+
+    - name: Filter snapshots for the specific source volume
+      set_fact:
+        volume_snapshots: >-
+          {{ all_snapshots
+             | selectattr('data.source', 'equalto', target_volume_source)
+             | list }}
+
+    - name: Fail if no snapshots found for the volume
+      fail:
+        msg: "No snapshots found for volume '{{ target_volume_source }}'."
+      when: volume_snapshots | length == 0
+
+    - name: Get latest snapshot by created_epoch
+      set_fact:
+        latest_snapshot: >-
+          {{ volume_snapshots
+             | sort(attribute='data.created_epoch', reverse=True)
+             | first }}
+
+    - name: Extract snapshot name parts
+      set_fact:
+        snapshot_parts: "{{ latest_snapshot.name.split('.') }}"
+
+    - name: Extract snapshot volume and suffix
+      set_fact:
+        snapshot_volume: "{{ snapshot_parts[0] ~ '.' ~ snapshot_parts[1] }}"  # e.g. z-x90-b:cinder-group.2
+        snapshot_suffix: "{{ snapshot_parts[2] }}"
+
+    - name: Define name for restored volume
+      set_fact:
+        restored_volume_name: "restored-from-{{ snapshot_volume | regex_replace('^.+:', '') }}"
+
+    - name: Sanitize restored volume name (no dots)
+      set_fact:
+        restored_volume_name_safe: "{{ restored_volume_name | replace('.', '-') }}"
+
+    - name: Create volume from latest snapshot
+      purestorage.flasharray.purefa_snap:
+        state: copy
+        name: "{{ snapshot_volume }}"
+        suffix: "{{ snapshot_suffix }}"
+        target: "{{ restored_volume_name_safe }}"
+        overwrite: false
+        fa_url: "{{ fa_url }}"
+        api_token: "{{ fa_api_token }}"
+
+    - name: Display new volume info
+      debug:
+        msg: "Restored volume '{{ restored_volume_name_safe }}' created from snapshot '{{ latest_snapshot.name }}'"
+
+    - name: Manage volume into cinder
+      openstack.cloud.volume_manage:
+        cloud: "{{ target_openstack_cloud }}"
+        state: present
+        source_name: "{{ restored_volume_name_safe }}"
+        bootable: True
+        volume_type: "{{ target_volume_type }}"
+        host: "{{ target_host }}"
+        name: "{{ target_volume_name }}"
+      register: cinder_vol
+
+    - name: Boot instance from managed volume
+      openstack.cloud.server:
+        cloud: "{{ target_openstack_cloud }}"
+        state: present
+        name: "{{ os_instance_name }}"
+        flavor: "{{ os_flavor }}"
+        key_name: "{{ os_keypair }}"
+        nics:
+          - net-name: "{{ os_network }}"
+        security_groups: "{{ os_security_groups }}"
+        boot_volume: "{{ cinder_vol.volume.name }}"
+        wait: true
+        timeout: 600
+        # availability_zone: # Optional
+        # user_data: # Optional
+        # scheduler_hints: # Optional
