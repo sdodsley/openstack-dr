@@ -12,6 +12,7 @@
     fa_url: <replication target FlashArray IP address>
     fa_api_token: <replication target FlashArray API token>
     os_volume_name: <name of boot volume on source os cloud>
+    target_os_volume_name: <name of boot volume on target os cloud>
   tasks:
     - name: Get Cinder volume details
       openstack.cloud.volume_info:
@@ -98,7 +99,7 @@
         bootable: True
         volume_type: "{{ target_volume_type }}"
         host: "{{ target_host }}"
-        name: "{{ target_volume_name }}"
+        name: "{{ target_os_volume_name }}"
       register: cinder_vol
 
     - name: Boot instance from managed volume
