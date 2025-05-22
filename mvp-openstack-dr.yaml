@@ -2,11 +2,11 @@
   hosts: localhost
   gather_facts: no
   vars:
-    source_openstack_cloud: devstack-admin
-    target_openstack_cloud: devstack-admin
-    fa_url: 10.225.112.40
-    fa_api_token: f63db782-4918-661a-ac0e-df993613632b
-    os_volume_name:
+    source_openstack_cloud: <name of source os cloud>
+    target_openstack_cloud: <name of target os cloud>
+    fa_url: <replication target FlashArray IP address>
+    fa_api_token: <replication target FlashArray API token>
+    os_volume_name: <name of boot volume on source os cloud>
   tasks:
     - name: Get Cinder volume details
       openstack.cloud.volume_info:
@@ -16,10 +16,10 @@
 
     - name: Extract array and array_volume_name from Cinder volume metadata
       set_fact:
-        volume_name: "{{ os_volume_info.volumes[0].metadata.array_volume_name }}"
         source_array: "{{ os_volume_info.volumes[0].metadata.array_name }}"
+        volume_name: "{{ os_volume_info.volumes[0].metadata.array_volume_name.split(':')[-1] }}"
 
-    - name: Set the pg volume name
+    - name: Set the PG snapshot volume name
       set_fact:
         target_volume_source: "{{ source_array }}:{{ volume_name }}"
 
