@@ -69,3 +69,4 @@ i# -----------------------------------------------------------------------------
         # availability_zone: # Optional
         # user_data: # Optional
         # scheduler_hints: # Optional
+      when: bootable | bool
