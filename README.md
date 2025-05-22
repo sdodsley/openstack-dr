@@ -1,7 +1,7 @@
 # OpenStack-DR
 ## MVP for Pure / Red Hat / Trilio OpenStack DR/Failover service.
 
-This playbook is only for an instance with a single cinder-based boot volume.
+This playbook is only for an instance with a single cinder-based volume. If the volume is bootable, then an instance will be started using it.
 
 The boot volume on the primary openstack cloud is of a volume type where the volume has been replicated (**asynchronously or synchronously**) between two Pure FlashArrays.
 
