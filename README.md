@@ -16,7 +16,7 @@ Under current upstream cinder code replication failover is per backend, so it ca
 
 To enable something that would effectively enable these scripts to work on a per tenant or application basis the following methodology should be performed, based on a single physical FlashArray connected to the source OS cloud, replicated to another FlashArray connected to a second OS cloud
 
-In the `cinder.conf` define multiple backends, all pointing to the same physical source-side FlashArray. For example:
+In the source OpenStack cloud's `cinder.conf` define multiple backends, all pointing to the same physical source-side FlashArray. For example:
 
 ```
 [DEFAULT]
@@ -69,3 +69,5 @@ openstack volume type set --property replication_enabled='<is> True' Tenant3
 openstack volume type set --property replication_type='<in> async' Tenant3
 openstack volume type set --project <tenant 3 name>
 ```
+
+On the target OpenStack cloud, you may want to have similar volumes types created, with out without reverse replication. The second physical FlashArray is the one that should be configured in the target OpenStack cloud's `cinder.conf`
