@@ -1,3 +1,8 @@
+# -----------------------------------------------------------------------------
+# Copyright © 2025 Pure Storage, Inc. All rights reserved.
+# This playbook is intended for use in automating snapshot restore operations
+# on Pure Storage FlashArray volumes in OpenStack environments.
+# -----------------------------------------------------------------------------
 - name: OpenStack DR recovery - single boot volume
   hosts: localhost
   gather_facts: no
