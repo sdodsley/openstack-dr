@@ -6,6 +6,7 @@
     region_name: null
     detailed: true
     filters: {}
+    tenant: my_tenant_name
     instance_name: null
     collect_guest_facts: false
     ssh_user: ubuntu
