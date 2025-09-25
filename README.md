@@ -1,4 +1,8 @@
 # OpenStack-DR (Project Aegis)
+<div align="center">
+<img src="aegis.png" alt="Aegis Logo" width="300">
+</div>
+
 ## MVP for Pure / Trilio OpenStack DR/Failover service.
 
 These playbooks are only for single cinder-based volumes. If the volume is bootable, then an instance will be started using it.
