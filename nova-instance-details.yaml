@@ -1,0 +1,101 @@
+- name: Gather detailed OpenStack Nova instance information
+  hosts: localhost
+  gather_facts: false
+  vars:
+    cloud_name: my_openstack_cloud
+    region_name: null
+    detailed: true
+    filters: {}
+    instance_name: null
+    collect_guest_facts: false
+    ssh_user: ubuntu
+    ssh_private_key_file: ~/.ssh/id_rsa
+    ansible_ssh_common_args: ''
+    ssh_wait_port: 22
+    ssh_wait_timeout: 60
+
+  tasks:
+    - name: Query server (Nova) info from OpenStack
+      openstack.cloud.server_info:
+        cloud: "{{ cloud_name }}"
+        region_name: "{{ region_name }}"
+        detailed: "{{ detailed }}"
+        name: "{{ instance_name }}"
+        filters: "{{ filters }}"
+      register: server_info
+      failed_when: server_info is failed
+
+    - name: Set fact: instance_metadata
+      set_fact:
+        instance_metadata: "{{ server_info.servers | default([]) }}"
+
+    - name: Print a summary of each instance
+      loop: "{{ instance_metadata }}"
+      loop_control:
+        label: "{{ item.name }}"
+      vars:
+        inst: "{{ item }}"
+      debug:
+        msg: |
+          Instance: {{ inst.name }} (ID: {{ inst.id }})
+            Status: {{ inst.status }}
+            Flavor: vCPUs={{ inst.flavor.vcpus }}, RAM={{ inst.flavor.ram }} MB, Disk={{ inst.flavor.disk }} GB
+            Disk config: {{ inst.disk_config }}
+            Block devices: {{ inst.block_device_mapping }}
+            Networks / addresses: {{ inst.addresses }}
+            Availability zone: {{ inst.availability_zone }}
+            Hypervisor host: {{ inst.hypervisor_hostname | default('n/a') }}
+            Security groups: {{ inst.security_groups }}
+            Metadata tags: {{ inst.metadata }}
+            Volumes attached: {{ inst.attached_volumes }}
+
+    - name: Gather security group information
+      openstack.cloud.security_group_info:
+        cloud: "{{ cloud_name }}"
+      register: security_groups
+
+    - name: Display security group details
+      debug:
+        var: security_groups
+
+    - name: Gather network topology information
+      openstack.cloud.network_info:
+        cloud: "{{ cloud_name }}"
+      register: network_info
+
+    - name: Display network topology
+      debug:
+        var: network_info
+
+    - name: Wait for SSH to be ready on each instance
+      wait_for:
+        host: "{{ item.addresses | dict2items | first.value[0].addr }}"
+        port: "{{ ssh_wait_port }}"
+        timeout: "{{ ssh_wait_timeout }}"
+      loop: "{{ instance_metadata }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.addresses is defined and item.addresses | length > 0
+
+    - name: Add hosts for in-guest fact collection
+      add_host:
+        name: "{{ item.name }}"
+        ansible_host: "{{ item.addresses | dict2items | first.value[0].addr }}"
+        ansible_user: "{{ ssh_user }}"
+        ansible_ssh_private_key_file: "{{ ssh_private_key_file }}"
+        ansible_ssh_common_args: "{{ ansible_ssh_common_args }}"
+        groups: inspected_instances
+      loop: "{{ instance_metadata }}"
+      loop_control:
+        label: "{{ item.name }}"
+      when: item.addresses is defined and item.addresses | length > 0
+
+    - name: Gather system facts inside guest
+      ansible.builtin.gather_facts:
+      hosts: inspected_instances
+      become: yes
+
+    - name: Capture interesting facts from guest
+      set_fact:
+        guest_info: "{{ ansible_facts | selectattr('key', 'match', '^ansible_.*') | map(attribute='value') | list }}"
+      when: ansible_facts is defined
