@@ -1,4 +1,4 @@
-# OpenStack-DR (Project Aegis)
+# Project Aegis (OpenStack-DR)
 <div align="center">
 <img src="aegis.png" alt="Aegis Logo" width="300">
 </div>
