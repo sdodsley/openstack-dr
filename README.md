@@ -73,3 +73,7 @@ openstack volume type set --project <tenant 3 name>
 On the target OpenStack cloud, you may want to have similar volumes types created, with our without reverse replication. The second physical FlashArray is the one that should be configured in the target OpenStack cloud's `cinder.conf`.
 
 The second cloud's volume types should be used as necessary in the `volume_manage` task.
+
+## Additional work 
+Included is an Ansible playbook that will interrogate all Nova instances in a cloud and detail their configuration and describe the clouds netowrk topology and security groups.
+This can be used as a starting point for deeper enhancements where Ansible can be used to recreate a cloud's configuration on a remote site.
